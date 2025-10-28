@@ -173,3 +173,23 @@ button:active {
 .graph-link:hover {
     text-decoration: underline;
 }
+
+.github-links {
+    margin-top: 15px;
+    font-size: 12px;
+    color: #999;
+}
+
+.github-links a {
+    color: #ec3750;
+    text-decoration: none;
+}
+
+.github-links a:hover {
+    text-decoration: underline;
+}
+
+.github-links span {
+    margin: 0 8px;
+    color: #666;
+}
