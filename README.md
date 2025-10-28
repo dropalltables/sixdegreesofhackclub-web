@@ -92,4 +92,8 @@ Each line contains a connection between two channels:
 
 ## License
 
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+This license applies to all code in this repository, including all historical commits.
+
 Built for Hack Club
