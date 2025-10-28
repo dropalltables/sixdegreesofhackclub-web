@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Six Degrees of Hack Club - Network Graph</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div id="startup-modal">
+        <div id="startup-content">
+            <h2>Six Degrees of Hack Club</h2>
+            <p>This visualization renders a large network graph which may be resource-intensive on some devices.</p>
+            <div class="toggle-group">
+                <label for="render-toggle">Render Graph</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="render-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <button id="start-btn">Continue</button>
+        </div>
+    </div>
+
+    <div id="loading" style="display: none;">Loading graph data...</div>
+
+    <div id="controls" style="display: none;">
+        <h1>Six Degrees of Hack Club</h1>
+
+        <div class="input-group">
+            <label for="search">Search Channel</label>
+            <input type="text" id="search" list="channels" placeholder="Type channel name...">
+            <datalist id="channels"></datalist>
+        </div>
+
+        <div class="input-group">
+            <label for="fromChannel">From Channel</label>
+            <input type="text" id="fromChannel" list="channels" placeholder="e.g. lounge">
+        </div>
+
+        <div class="input-group">
+            <label for="toChannel">To Channel</label>
+            <input type="text" id="toChannel" list="channels" placeholder="e.g. ship">
+        </div>
+
+        <button id="findPath">Find Path</button>
+        <button id="clearPath">Clear Path</button>
+
+        <div id="stats">
+            <div><strong>Stats:</strong></div>
+            <div id="nodeCount">Nodes: 0</div>
+            <div id="linkCount">Links: 0</div>
+        </div>
+    </div>
+
+    <div id="tooltip"></div>
+    <svg id="graph"></svg>
+
+    <script src="js/graph.js"></script>
+</body>
+</html>

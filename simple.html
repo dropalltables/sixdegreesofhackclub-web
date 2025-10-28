@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Six Degrees of Hack Club - Path Finder</title>
+    <link rel="stylesheet" href="css/simple.css">
+</head>
+<body>
+    <div id="loading">Loading channel data...</div>
+
+    <div id="simple-mode" style="display: none;">
+        <div id="simple-container">
+            <h1>Six Degrees of Hack Club</h1>
+            <p class="subtitle">Find the shortest path between any two channels</p>
+
+            <div class="input-group">
+                <label for="simple-from">From Channel</label>
+                <input type="text" id="simple-from" list="simple-channels" placeholder="e.g. lounge">
+                <datalist id="simple-channels"></datalist>
+            </div>
+
+            <div class="input-group">
+                <label for="simple-to">To Channel</label>
+                <input type="text" id="simple-to" list="simple-channels" placeholder="e.g. ship">
+            </div>
+
+            <button id="simple-find">Find Path</button>
+
+            <div id="path-result"></div>
+
+            <div id="stats">
+                <div><strong>Network Stats:</strong></div>
+                <div id="simple-node-count">Channels: 0</div>
+                <div id="simple-link-count">Connections: 0</div>
+            </div>
+
+            <div class="footer">
+                <a href="index.html" class="graph-link">View Full Network Graph →</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/simple.js"></script>
+</body>
+</html>
