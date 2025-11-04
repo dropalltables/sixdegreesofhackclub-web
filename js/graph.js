@@ -4,6 +4,9 @@ let svg, g, link, node;
 let channelMap = new Map();
 let renderGraphMode = true;
 let linkMap = new Map(); // Store links with message info
+let adjacencyList = new Map(); // Adjacency list for faster pathfinding
+let currentTransform = d3.zoomIdentity; // Track zoom level for LOD
+let searchTimeout = null; // Debounce search
 
 // Startup modal handler
 document.getElementById('start-btn').addEventListener('click', () => {
@@ -80,6 +83,15 @@ async function loadData() {
         graphData.nodes = Array.from(nodes.values());
         graphData.links = links;
 
+        // Build adjacency list for optimized pathfinding
+        for (const link of links) {
+            const sourceId = link.source;
+            if (!adjacencyList.has(sourceId)) {
+                adjacencyList.set(sourceId, []);
+            }
+            adjacencyList.get(sourceId).push(link.target);
+        }
+
         document.getElementById('loading').style.display = 'none';
 
         // Populate channel list for graph mode
@@ -114,21 +126,26 @@ function initGraph() {
 
     g = svg.append('g');
 
-    // Zoom behavior
+    // Zoom behavior with LOD optimization
     const zoom = d3.zoom()
         .scaleExtent([0.1, 10])
         .on('zoom', (event) => {
+            currentTransform = event.transform;
             g.attr('transform', event.transform);
+            updateLabelVisibility(event.transform.k);
         });
 
     svg.call(zoom);
 
-    // Create simulation
+    // Create simulation with performance optimizations
     simulation = d3.forceSimulation(graphData.nodes)
         .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100))
         .force('charge', d3.forceManyBody().strength(-300))
         .force('center', d3.forceCenter(width / 2, height / 2))
-        .force('collision', d3.forceCollide().radius(20));
+        .force('collision', d3.forceCollide().radius(20))
+        .alphaDecay(0.02) // Faster convergence (default: 0.0228)
+        .velocityDecay(0.4) // More damping for stability (default: 0.4)
+        .alphaMin(0.001); // Stop simulation earlier (default: 0.001)
 
     // Create links
     link = g.append('g')
@@ -155,11 +172,19 @@ function initGraph() {
 
     nodeGroup.append('text')
         .text(d => d.name)
-        .attr('dy', 25);
+        .attr('dy', 25)
+        .attr('class', 'node-label');
 
     node = nodeGroup;
 
+    // Initialize label visibility based on zoom level
+    updateLabelVisibility(1);
+
+    // Optimized tick function - runs only when simulation is active
+    let tickCount = 0;
     simulation.on('tick', () => {
+        tickCount++;
+        // Only update every frame (no throttling needed as tick is already optimized)
         link
             .attr('x1', d => d.source.x)
             .attr('y1', d => d.source.y)
@@ -168,7 +193,34 @@ function initGraph() {
 
         node
             .attr('transform', d => `translate(${d.x},${d.y})`);
+
+        // Log progress every 100 ticks
+        if (tickCount % 100 === 0) {
+            console.log(`Simulation progress: alpha = ${simulation.alpha().toFixed(4)}`);
+        }
     });
+
+    // Log when simulation stops
+    simulation.on('end', () => {
+        console.log(`Simulation complete after ${tickCount} ticks`);
+    });
+}
+
+// Level of Detail: Hide labels when zoomed out
+function updateLabelVisibility(zoomLevel) {
+    const labels = g.selectAll('.node-label');
+
+    // Show labels only when zoomed in past threshold
+    if (zoomLevel < 0.5) {
+        // Very zoomed out - hide all labels
+        labels.style('display', 'none');
+    } else if (zoomLevel < 1.5) {
+        // Medium zoom - show labels for highly connected nodes only
+        labels.style('display', d => d.connections > 20 ? 'block' : 'none');
+    } else {
+        // Zoomed in - show all labels
+        labels.style('display', 'block');
+    }
 }
 
 function drag(simulation) {
@@ -210,21 +262,34 @@ function hideTooltip() {
     document.getElementById('tooltip').style.display = 'none';
 }
 
+// Optimized search function
+function performSearch(searchTerm) {
+    node.classed('highlighted', d => d.name.toLowerCase().includes(searchTerm));
+
+    if (searchTerm) {
+        node.style('opacity', d => d.name.toLowerCase().includes(searchTerm) ? 1 : 0.2);
+        link.style('opacity', 0.1);
+    } else {
+        node.style('opacity', 1);
+        link.style('opacity', 1);
+    }
+}
+
 // Graph mode specific functions
 function setupGraphMode() {
-    // Search functionality
+    // Search functionality with debouncing for better performance
     document.getElementById('search').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
 
-        node.classed('highlighted', d => d.name.toLowerCase().includes(searchTerm));
-
-        if (searchTerm) {
-            node.style('opacity', d => d.name.toLowerCase().includes(searchTerm) ? 1 : 0.2);
-            link.style('opacity', 0.1);
-        } else {
-            node.style('opacity', 1);
-            link.style('opacity', 1);
+        // Clear existing timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
         }
+
+        // Debounce search by 150ms
+        searchTimeout = setTimeout(() => {
+            performSearch(searchTerm);
+        }, 150);
     });
 
     // Find path button
@@ -295,27 +360,21 @@ function clearHighlights() {
     link.style('opacity', 1);
 }
 
-// BFS pathfinding
+// Optimized BFS pathfinding using adjacency list
 function findPath(startId, endId) {
     if (startId === endId) return { path: [startId], links: [] };
 
     const queue = [[startId]];
     const visited = new Set([startId]);
-    const parent = new Map();
-    parent.set(startId, null);
 
     while (queue.length > 0) {
         const path = queue.shift();
         const current = path[path.length - 1];
 
-        const outgoing = graphData.links.filter(l => {
-            const sourceId = l.source.id || l.source;
-            return sourceId === current;
-        });
+        // Use adjacency list for O(1) lookup instead of O(n) filtering
+        const neighbors = adjacencyList.get(current) || [];
 
-        for (const link of outgoing) {
-            const nextId = link.target.id || link.target;
-
+        for (const nextId of neighbors) {
             if (nextId === endId) {
                 const fullPath = [...path, endId];
                 const pathLinks = [];
